@@ -69,20 +69,35 @@ typedef NS_ENUM(NSInteger, EOASortingMode) {
     self.tableView.contentInset = UIEdgeInsetsMake(-16, 0, 0, 0);
     if (_screenType == EOAAddToATrack)
         self.tableView.tableHeaderView = [OAUtilities setupTableHeaderViewWithText:OALocalizedString(@"route_between_points_add_track_desc") font:[UIFont systemFontOfSize:15.] textColor:UIColor.blackColor lineSpacing:0. isTitle:NO];
+    else if (_screenType == EOAFollowTrack)
+        self.tableView.tableHeaderView = [OAUtilities setupTableHeaderViewWithText:OALocalizedString(@"select_track_to_follow") font:[UIFont systemFontOfSize:15.] textColor:UIColor.blackColor lineSpacing:0. isTitle:NO];
 }
 
 - (void) applyLocalization
 {
     [super applyLocalization];
-    self.titleLabel.text = _screenType == EOAOpenExistingTrack ? OALocalizedString(@"plan_route_open_existing_track") : OALocalizedString(@"add_to_track");
+    switch (_screenType) {
+        case EOAOpenExistingTrack:
+            self.titleLabel.text = OALocalizedString(@"plan_route_open_existing_track");
+            break;
+        case EOAAddToATrack:
+            self.titleLabel.text = OALocalizedString(@"add_to_track");
+            break;
+        case EOAFollowTrack:
+            self.titleLabel.text = OALocalizedString(@"follow_track");
+            break;
+        default:
+            break;
+    }
 }
 
 - (void) viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator
 {
     [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
-    if (_screenType == EOAAddToATrack)
+    NSString *headerDescription = _screenType == EOAAddToATrack ? OALocalizedString(@"route_between_points_add_track_desc") : OALocalizedString(@"select_track_to_follow");
+    if (_screenType != EOAOpenExistingTrack)
         [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-            self.tableView.tableHeaderView = [OAUtilities setupTableHeaderViewWithText:OALocalizedString(@"route_between_points_add_track_desc") font:[UIFont systemFontOfSize:15.] textColor:UIColor.blackColor lineSpacing:0. isTitle:NO];
+            self.tableView.tableHeaderView = [OAUtilities setupTableHeaderViewWithText:headerDescription font:[UIFont systemFontOfSize:15.] textColor:UIColor.blackColor lineSpacing:0. isTitle:NO];
             [self.tableView reloadData];
         } completion:nil];
 }
@@ -234,26 +249,42 @@ typedef NS_ENUM(NSInteger, EOASortingMode) {
     NSDictionary *item = _data[indexPath.section][indexPath.row];
     
     OAGPX* track = item[@"track"];
-    if (_screenType == EOAOpenExistingTrack && track)
-    {
-        if (self.delegate)
+    switch (_screenType) {
+        case EOAOpenExistingTrack:
+        {
+            if (self.delegate)
+                [self.delegate closeBottomSheet];
+            [self dismissViewControllerAnimated:YES completion:nil];
+            [[OARootViewController instance].mapPanel showScrollableHudViewController:[[OARoutePlanningHudViewController alloc] initWithFileName:track.gpxFileName]];
+            break;
+        }
+        case EOAAddToATrack:
+        {
+            OAGPX* track = item[@"track"];
+            NSString *filename = nil;
+            if (track)
+                filename = track.gpxFileName;
+            if (self.delegate)
+                [self.delegate onFileSelected:filename];
+            [tableView deselectRowAtIndexPath:indexPath animated:YES];
+            [self dismissViewControllerAnimated:YES completion:nil];
+            break;
+        }
+        case EOAFollowTrack:
+        {
+            OAGPX* track = item[@"track"];
+            NSString *filename = nil;
+            if (track)
+                filename = track.gpxFileName;
+            if (self.delegate)
+                [self.delegate onFileSelected:filename];
             [self.delegate closeBottomSheet];
-        [self dismissViewControllerAnimated:YES completion:nil];
-        [[OARootViewController instance].mapPanel showScrollableHudViewController:[[OARoutePlanningHudViewController alloc] initWithFileName:track.gpxFileName]];
-        return;
+            [self dismissViewControllerAnimated:YES completion:nil];
+            break;
+        }
+        default:
+            break;
     }
-    else
-    {
-        OAGPX* track = item[@"track"];
-        NSString *filename = nil;
-        if (track)
-            filename = track.gpxFileName;
-        if (self.delegate)
-            [self.delegate onFileSelected:filename];
-        [tableView deselectRowAtIndexPath:indexPath animated:YES];
-        [self dismissViewControllerAnimated:YES completion:nil];
-    }
-    return;
 }
 
 - (void) segmentChanged:(id)sender

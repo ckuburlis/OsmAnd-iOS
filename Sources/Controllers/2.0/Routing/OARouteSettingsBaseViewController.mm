@@ -38,6 +38,7 @@
 #import "OASettingSwitchCell.h"
 #import "OAIconTitleValueCell.h"
 #import "OARouteAvoidSettingsViewController.h"
+#import "OAFollowTrackBottomSheetViewController.h"
 
 #include <generalRouter.h>
 
@@ -348,9 +349,13 @@
 
 - (void) showTripSettingsScreen
 {
-    OARouteTripSettingsViewController *tripsController = [[OARouteTripSettingsViewController alloc] init];
-    tripsController.delegate = self;
-    [self presentViewController:tripsController animated:YES completion:nil];
+    OAGPXRouteParamsBuilder *currentGPXRoute = [_routingHelper getCurrentGPXRoute];
+    if (currentGPXRoute)
+    {
+        OAFollowTrackBottomSheetViewController *bottomSheet = [[OAFollowTrackBottomSheetViewController alloc] initWithFile:currentGPXRoute.file];
+        [self doneButtonPressed];
+        [bottomSheet presentInViewController:OARootViewController.instance];
+    }
 }
 
 - (void) showAvoidTransportScreen

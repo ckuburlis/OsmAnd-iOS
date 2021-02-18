@@ -21,10 +21,15 @@
 #import "OsmAndApp.h"
 #import "OARoutingHelper.h"
 #import "OAGPXDocument.h"
-#import "OARoutingHelper.h"
 #import "OARoutePreferencesParameters.h"
 #import "OARouteProvider.h"
 #import "OATargetPointsHelper.h"
+#import "OAOpenAddTrackViewController.h"
+#import "OARootViewController.h"
+#import "OAMapActions.h"
+#import "OARoutePlanningHudViewController.h"
+#import "OAMeasurementEditingContext.h"
+#import "OAGpxData.h"
 
 #define kGPXTrackCell @"OAGPXTrackCell"
 #define kCellTypeSegment @"OASegmentTableViewCell"
@@ -33,7 +38,7 @@
 #define kCellTypeTitleRightIcon @"OATitleRightIconCell"
 
 
-@interface OAFollowTrackBottomSheetViewController () <UITableViewDelegate, UITableViewDataSource>
+@interface OAFollowTrackBottomSheetViewController () <UITableViewDelegate, UITableViewDataSource, OAOpenAddTrackDelegate>
 
 @end
 
@@ -117,13 +122,12 @@
             @"wpt" : [NSString stringWithFormat:@"%d", gpx.wptPoints],
             @"key" : @"gpx_route"
         },
-        // TODO: add the ability to select another track to follow
-        /*@{
+        @{
             @"type" : kIconTitleDescrCell,
             @"title" : OALocalizedString(@"select_another_track"),
             @"img" : @"ic_custom_folder",
             @"key" : @"select_another"
-        },*/
+        },
         @{
             @"type" : kCellTypeProfileSwitch,
             @"title" : OALocalizedString(@"reverse_track_dir"),
@@ -370,18 +374,44 @@
 
 #pragma mark - UItableViewDelegate
 
-- (NSIndexPath *)tableView:(UITableView *)tableView willSelectRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    return indexPath.section == 0 && indexPath.row == 1 ? indexPath : nil;
-}
-
 - (void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     NSDictionary *item = _data[indexPath.section][indexPath.row];
-    
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    [self dismissViewControllerAnimated:YES completion:nil];
+    NSString *key = item[@"key"];
+    if ([key isEqualToString:@"select_another"])
+    {
+        OAOpenAddTrackViewController *saveTrackViewController = [[OAOpenAddTrackViewController alloc] initWithScreenType:EOAFollowTrack];
+        saveTrackViewController.delegate = self;
+        [self presentViewController:saveTrackViewController animated:YES completion:nil];
+        return;
+    }
+    if ([key isEqualToString:@"gpx_route"])
+    {
+        [self openPlanRoute];
+        return;
+    }
+    else
+    {
+        [tableView deselectRowAtIndexPath:indexPath animated:YES];
+        [self dismissViewControllerAnimated:YES completion:nil];
+    }
 }
+
+- (void) openPlanRoute
+{
+    if (_gpx)
+    {
+        OAGpxData *gpxData = [[OAGpxData alloc] initWithFile:(OAGPXMutableDocument *)_gpx];
+        OAMeasurementEditingContext *editingContext = [[OAMeasurementEditingContext alloc] init];
+        editingContext.gpxData = gpxData;
+        editingContext.appMode = OARoutingHelper.sharedInstance.getAppMode;
+        
+        [self dismissViewControllerAnimated:YES completion:nil];
+        [[OARootViewController instance].mapPanel closeRouteInfo];
+        [[OARootViewController instance].mapPanel showScrollableHudViewController:[[OARoutePlanningHudViewController alloc] initWithEditingContext:editingContext followTrackMode:YES]];
+    }
+}
+
 
 #pragma mark - UITapGestureRecognizer
 
@@ -403,6 +433,26 @@
         }
         default:
             break;
+    }
+}
+
+#pragma mark - OAOpenAddTrackDelegate
+
+- (void) closeBottomSheet
+{
+    [self onRightButtonPressed];
+}
+
+- (void) onFileSelected:(NSString *)gpxFileName
+{
+    if (gpxFileName)
+    {
+        OAGPX *gpx = [OAGPXDatabase.sharedDb getGPXItem:gpxFileName];
+        NSString *path = [[OsmAndApp instance].gpxPath stringByAppendingPathComponent:gpx.gpxFileName];
+        _gpx = [[OAGPXDocument alloc] initWithGpxFile:path];
+        [[OARootViewController instance].mapPanel.mapActions setGPXRouteParams:gpx];
+        [OARoutingHelper.sharedInstance recalculateRouteDueToSettingsChange];
+        [[OATargetPointsHelper sharedInstance] updateRouteAndRefresh:YES];
     }
 }
 

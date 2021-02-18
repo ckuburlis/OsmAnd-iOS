@@ -616,7 +616,7 @@
 "record_trip" = "Record your track";
 "poi_clear" = "Clear";
 "poi_list" = "POI list";
-
+"select_track_to_follow" = "Select track to follow";
 
 "track_during_nav" = "Auto-record track";
 "track_during_nav_descr" = "Turn on to automatically save a track during navigation";

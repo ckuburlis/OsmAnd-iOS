@@ -165,6 +165,20 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
     return self;
 }
 
+- (instancetype) initWithEditingContext:(OAMeasurementEditingContext *)editingContext followTrackMode:(BOOL)followTrackMode
+{
+    self = [super initWithNibName:@"OARoutePlanningHudViewController"
+                           bundle:nil];
+    if (self)
+    {
+        [self commonInit];
+        
+        _editingContext = editingContext;
+        [self setMode:FOLLOW_TRACK_MODE on:followTrackMode];
+    }
+    return self;
+}
+
 - (void) commonInit
 {
     _app = OsmAndApp.instance;
@@ -225,6 +239,8 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
     self.tableView.userInteractionEnabled = YES;
     [self.view bringSubviewToFront:self.tableView];
     
+    OAGpxData *gpxData = _editingContext.gpxData;
+    [self initMeasurementMode:gpxData addPoints:YES];
     [self addInitialPoint];
     
     if (_fileName)
@@ -555,10 +571,10 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
 
 - (IBAction)donePressed:(id)sender
 {
-//    if ([self isFollowTrackMode])
-//        [self startTrackNavigation];
-//    else
-    [self saveChanges:SHOW_SNACK_BAR_AND_CLOSE showDialog:NO];
+    if ([self isFollowTrackMode])
+        [self startTrackNavigation];
+    else
+        [self saveChanges:SHOW_SNACK_BAR_AND_CLOSE showDialog:NO];
     [self dismiss];
 }
 
@@ -895,6 +911,25 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
     OAOpenAddTrackViewController *saveTrackViewController = [[OAOpenAddTrackViewController alloc] initWithScreenType:EOAAddToATrack];
     saveTrackViewController.delegate = self;
     [self presentViewController:saveTrackViewController animated:YES completion:nil];
+}
+
+- (void) startTrackNavigation
+{
+    if ([_editingContext hasRoute])
+    {
+        NSString *trackName = [self getSuggestedFileName];
+        OAGPXDocument *gpx = [_editingContext exportGpx:trackName];
+        if (gpx)
+        {
+            OAApplicationMode *appMode = _editingContext.appMode;
+            [self onCloseButtonPressed];
+            [self runNavigation:gpx appMode:appMode];
+        }
+        else
+        {
+            NSLog(@"Error");
+        }
+    }
 }
 
 #pragma mark - OADraggableViewActions
@@ -1356,9 +1391,9 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
 
 - (void) saveChangesSelected
 {
-//    if (self.isFollowTrackMode)
-//        [self startTrackNavigation];
-//    else
+    if (self.isFollowTrackMode)
+        [self startTrackNavigation];
+    else
         [self saveChanges:SHOW_TOAST showDialog:YES];
 }
 
