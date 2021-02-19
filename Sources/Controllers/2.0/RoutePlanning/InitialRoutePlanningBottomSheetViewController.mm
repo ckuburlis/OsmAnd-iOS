@@ -112,8 +112,8 @@
 
     OAGPXDatabase *db = [OAGPXDatabase sharedDb];
     NSArray *gpxList = [db.gpxList sortedArrayUsingComparator:^NSComparisonResult(OAGPX *obj1, OAGPX *obj2) {
-        NSDate *time1 = [OAUtilities getFileLastModificationDate:obj1.gpxFileName];
-        NSDate *time2 = [OAUtilities getFileLastModificationDate:obj2.gpxFileName];
+        NSDate *time1 = [OAUtilities getFileLastModificationDate:obj1.gpxFilepath];
+        NSDate *time2 = [OAUtilities getFileLastModificationDate:obj2.gpxFilepath];
         return [time2 compare:time1];
     }];
     

@@ -20,6 +20,12 @@
 #import "OARoutePlanningHudViewController.h"
 #import "OASaveTrackBottomSheetViewController.h"
 #import "OAUtilities.h"
+#import "OARootViewController.h"
+#import "OATargetPointsHelper.h"
+#import "OARoutingHelper.h"
+#import "OARouteProvider.h"
+#import "OAFollowTrackBottomSheetViewController.h"
+#import "OAMapActions.h"
 
 #define kGPXTrackCell @"OAGPXTrackCell"
 #define kCellTypeSegment @"OASegmentTableViewCell"
@@ -153,8 +159,8 @@ typedef NS_ENUM(NSInteger, EOASortingMode) {
         switch (_sortingMode) {
             case EOAModifiedDate:
             {
-                NSDate *time1 = [OAUtilities getFileLastModificationDate:obj1.gpxFileName];
-                NSDate *time2 = [OAUtilities getFileLastModificationDate:obj2.gpxFileName];
+                NSDate *time1 = [OAUtilities getFileLastModificationDate:obj1.gpxFilepath];
+                NSDate *time2 = [OAUtilities getFileLastModificationDate:obj2.gpxFilepath];
                 return [time2 compare:time1];
             }
             case EOANameAscending:
@@ -277,7 +283,23 @@ typedef NS_ENUM(NSInteger, EOASortingMode) {
             if (track)
                 filename = track.gpxFileName;
             if (self.delegate)
+            {
                 [self.delegate onFileSelected:filename];
+            }
+            else
+            {
+                OAGPX *gpx = [OAGPXDatabase.sharedDb getGPXItem:filename];
+                [[OARootViewController instance].mapPanel.mapActions setGPXRouteParams:gpx];
+                [OARoutingHelper.sharedInstance recalculateRouteDueToSettingsChange];
+                [[OATargetPointsHelper sharedInstance] updateRouteAndRefresh:YES];
+                
+                OAGPXRouteParamsBuilder *gpxParams = [[OARoutingHelper sharedInstance] getCurrentGPXRoute];
+                OAGPXDocument *gpxDoc = gpxParams.file;
+                
+                OAFollowTrackBottomSheetViewController *bottomSheet = [[OAFollowTrackBottomSheetViewController alloc] initWithFile:gpxDoc];
+                [self dismissViewControllerAnimated:YES completion:nil];
+                [bottomSheet presentInViewController:OARootViewController.instance];
+            }
             [self.delegate closeBottomSheet];
             [self dismissViewControllerAnimated:YES completion:nil];
             break;

@@ -231,6 +231,7 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
     _titleView.text = OALocalizedString(@"plan_route");
     
     _layer.delegate = self;
+    _layer.editingCtx = _editingContext;
     
     [self adjustMapViewPort];
     [self changeMapRulerPosition];
@@ -242,6 +243,12 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
     OAGpxData *gpxData = _editingContext.gpxData;
     [self initMeasurementMode:gpxData addPoints:YES];
     [self addInitialPoint];
+    
+    if (gpxData)
+    {
+        OAGpxBounds bounds = gpxData.rect;
+        [self centerMapOnBBox:bounds];
+    }
     
     if (_fileName)
         [self addNewGpxData:[self getGpxFile:_fileName]];
@@ -1074,7 +1081,7 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
 
 #pragma mark - OAMeasurementLayerDelegate
 
-- (void)onMeasue:(double)distance bearing:(double)bearing
+- (void)onMeasure:(double)distance bearing:(double)bearing
 {
     dispatch_async(dispatch_get_main_queue(), ^{
         self.descriptionLabel.text = [NSString stringWithFormat:@"%@ • %@", [_app getFormattedDistance:distance], [OsmAndApp.instance getFormattedAzimuth:bearing]];
@@ -1474,7 +1481,7 @@ typedef NS_ENUM(NSInteger, EOAHudMode) {
 {
     OAMapPanelViewController *mapPanel = [OARootViewController instance].mapPanel;
     OARoutingHelper *routingHelper = OARoutingHelper.sharedInstance;
-    OAGPX *track = [OAGPXDatabase.sharedDb getGPXItem:gpx.fileName];
+    OAGPX *track = [OAGPXDatabase.sharedDb getGPXItem:[gpx.fileName lastPathComponent]];
     if (routingHelper.isFollowingMode)
     {
         if ([self isFollowTrackMode])

@@ -39,6 +39,7 @@
 #import "OAIconTitleValueCell.h"
 #import "OARouteAvoidSettingsViewController.h"
 #import "OAFollowTrackBottomSheetViewController.h"
+#import "OAOpenAddTrackViewController.h"
 
 #include <generalRouter.h>
 
@@ -355,6 +356,12 @@
         OAFollowTrackBottomSheetViewController *bottomSheet = [[OAFollowTrackBottomSheetViewController alloc] initWithFile:currentGPXRoute.file];
         [self doneButtonPressed];
         [bottomSheet presentInViewController:OARootViewController.instance];
+    }
+    else
+    {
+        OAOpenAddTrackViewController *saveTrackViewController = [[OAOpenAddTrackViewController alloc] initWithScreenType:EOAFollowTrack];
+        [self doneButtonPressed];
+        [OARootViewController.instance presentViewController:saveTrackViewController animated:YES completion:nil];
     }
 }
 

@@ -109,7 +109,7 @@
 {
     NSMutableArray *data = [NSMutableArray new];
     OAGPXDatabase *db = [OAGPXDatabase sharedDb];
-    OAGPX *gpx = [db getGPXItem:_gpx.fileName];
+    OAGPX *gpx = [db getGPXItem:[_gpx.fileName lastPathComponent]];
     OsmAndAppInstance app = OsmAndApp.instance;
     
     [data addObject:@[
@@ -448,8 +448,6 @@
     if (gpxFileName)
     {
         OAGPX *gpx = [OAGPXDatabase.sharedDb getGPXItem:gpxFileName];
-        NSString *path = [[OsmAndApp instance].gpxPath stringByAppendingPathComponent:gpx.gpxFileName];
-        _gpx = [[OAGPXDocument alloc] initWithGpxFile:path];
         [[OARootViewController instance].mapPanel.mapActions setGPXRouteParams:gpx];
         [OARoutingHelper.sharedInstance recalculateRouteDueToSettingsChange];
         [[OATargetPointsHelper sharedInstance] updateRouteAndRefresh:YES];
